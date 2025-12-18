@@ -6,9 +6,10 @@ from sklearn.model_selection import train_test_split
 from src.models import LinearRegression
 from src.optimizers.gd import GD
 from src.loss import MSE
+from src.regularizers import L2
 
 
-X, y = make_regression(n_samples=200, n_features=1, noise=5.0, random_state=42)
+X, y = make_regression(n_samples=200, n_features=1, noise=10.0, random_state=42)
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
@@ -16,7 +17,8 @@ X_train, X_test, y_train, y_test = train_test_split(
 model = LinearRegression(
     fit_intercept=True,
     loss=MSE(),
-    opt=GD(lr=0.1),
+    reg=L2(alpha=0.1),
+    opt=GD(lr=0.3),
     steps=1000,
 )
 

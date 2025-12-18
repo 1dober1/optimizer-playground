@@ -3,18 +3,18 @@ import numpy as np
 
 class LinearRegression:
     def __init__(
-        self, fit_intercept=True, loss=None, penalty=None, opt=None, steps=None
+        self, fit_intercept=True, loss=None, reg=None, opt=None, steps=None
     ) -> None:
         if loss is None:
             raise Exception("Loss function cannot be empty")
         if opt is None:
             raise Exception("Optimizer cannot be empty")
-        if steps is None or steps < 0:
+        if steps is None or steps <= 0:
             raise ValueError("Steps must be > 0")
 
         self.fit_intercept = fit_intercept
         self.loss = loss
-        self.reg = penalty
+        self.reg = reg
         self.opt = opt
         self.w = None
         self.steps = steps
@@ -31,10 +31,24 @@ class LinearRegression:
 
         for _ in range(self.steps):
             grad = self.loss.gradient(X_b, self.w, y)
+
+            if self.reg is not None:
+                if self.fit_intercept:
+                    grad[1:] += self.reg.grad(self.w[1:])
+                else:
+                    grad += self.reg.grad(self.w)
+
             self.w = self.opt.step(self.w, grad)
 
             current_pred = X_b @ self.w
             loss_val = self.loss(y, current_pred)
+
+            if self.reg is not None:
+                if self.fit_intercept:
+                    loss_val += self.reg(self.w[1:])
+                else:
+                    loss_val += self.reg(self.w)
+
             self.history.append(loss_val)
 
         return self
