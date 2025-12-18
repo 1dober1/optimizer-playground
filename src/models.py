@@ -3,7 +3,13 @@ import numpy as np
 
 class LinearRegression:
     def __init__(
-        self, fit_intercept=True, loss=None, reg=None, opt=None, steps=None
+        self,
+        fit_intercept=True,
+        loss=None,
+        reg=None,
+        opt=None,
+        steps=None,
+        random_state=None,
     ) -> None:
         if loss is None:
             raise Exception("Loss function cannot be empty")
@@ -18,6 +24,7 @@ class LinearRegression:
         self.opt = opt
         self.w = None
         self.steps = steps
+        self.rng = np.random.default_rng(random_state)
 
     def fit(self, X, y):
         self.history = []
@@ -27,7 +34,7 @@ class LinearRegression:
         else:
             X_b = X
 
-        self.w = np.random.randn(X_b.shape[1]) * 0.01
+        self.w = self.rng.standard_normal(X_b.shape[1]) * 0.01
 
         for _ in range(self.steps):
             grad = self.loss.gradient(X_b, self.w, y)

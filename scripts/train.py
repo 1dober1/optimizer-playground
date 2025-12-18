@@ -1,5 +1,4 @@
-import numpy as np
-import matplotlib.pyplot as plt
+import argparse
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 
@@ -9,36 +8,68 @@ from src.loss import MSE
 from src.regularizers import L1, L2, Elastic_Net
 
 
-X, y = make_regression(n_samples=200, n_features=1, noise=10.0, random_state=42)
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+def get_args():
+    parser = argparse.ArgumentParser(description="Train Linear Regression model")
+    parser.add_argument("--lr", type=float, default=0.01, help="Learning rate")
+    parser.add_argument("--steps", type=int, default=1000, help="Number of steps")
+    parser.add_argument(
+        "--reg",
+        type=str,
+        choices=["none", "l1", "l2", "elastic"],
+        default="none",
+        help="Regularization type",
+    )
+    parser.add_argument(
+        "--alpha", type=float, default=0.1, help="Regularization strength"
+    )
 
-model = LinearRegression(
-    fit_intercept=True,
-    loss=MSE(),
-    reg=Elastic_Net(alpha=0.1, l1_ratio=0.5),
-    opt=GD(lr=0.3),
-    steps=1000,
-)
+    parser.add_argument("--n_samples", type=int, default=200, help="Number of samples")
+    parser.add_argument("--n_features", type=int, default=50, help="Number of features")
+    parser.add_argument("--noise", type=float, default=10.0, help="Noise level")
+
+    return parser.parse_args()
 
 
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
+def main():
+    args = get_args()
 
-print(f"MSE: {MSE()(y_test, y_pred)}")
+    X, y = make_regression(
+        n_samples=args.n_samples,
+        n_features=args.n_features,
+        n_informative=5,
+        noise=args.noise,
+        random_state=42,
+    )
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    regularizator = None
+    if args.reg == "l1":
+        regularizator = L1(alpha=args.alpha)
+    elif args.reg == "l2":
+        regularizator = L2(alpha=args.alpha)
+    elif args.reg == "elastic":
+        regularizator = Elastic_Net(alpha=args.alpha, l1_ratio=0.5)
 
-X_line = np.linspace(np.min(X[:, 0]), np.max(X[:, 0]), 200)
-y_line = model.predict(X_line)
+    print(f"Training model with LR={args.lr}, Reg={args.reg}, Steps={args.steps}...")
+    model = LinearRegression(
+        fit_intercept=True,
+        loss=MSE(),
+        reg=regularizator,
+        opt=GD(lr=args.lr),
+        steps=args.steps,
+        random_state=42,
+    )
 
-# ax1.scatter(X_train[:, 0], y_train, color="blue", alpha=0.7)
-ax1.scatter(X_test[:, 0], y_test, color="red", alpha=0.7)
-ax1.plot(X_line, y_line)
+    model.fit(X_train, y_train)
 
-ax2.plot(model.history, color="red")
-ax2.set_xlabel("Steps")
-ax2.set_ylabel("Loss")
+    y_pred = model.predict(X_test)
+    final_mse = MSE()(y_pred, y_test)
 
-plt.show()
+    print("-" * 100)
+    print(f"Final MSE: {final_mse:.4f}")
+
+
+if __name__ == "__main__":
+    main()
