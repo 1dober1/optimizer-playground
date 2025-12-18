@@ -1,9 +1,11 @@
 import numpy as np
 
 
-def mean_squared_error(y_true, y_pred):
-    return np.mean((y_true - y_pred) ** 2)
+class MSE:
+    def __call__(self, y_true, y_pred):
+        return np.mean((y_true - y_pred) ** 2)
 
-
-def grad_mean_squared_error(X, w, y):
-    return 2 / X.shape[0] * (X.T @ X @ w - X.T @ y)
+    def gradient(self, X, w, y):
+        y_pred = X @ w
+        error = y_pred - y.flatten()
+        return 2 / X.shape[0] * (X.T @ error)
