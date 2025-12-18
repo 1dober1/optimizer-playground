@@ -1,3 +1,5 @@
+import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 
@@ -6,7 +8,7 @@ from src.optimizers.gd import GD
 from src.loss import MSE
 
 
-X, y = make_regression(n_samples=200, n_features=3, noise=1.0, random_state=42)
+X, y = make_regression(n_samples=200, n_features=1, noise=5.0, random_state=42)
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
@@ -23,3 +25,18 @@ model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
 print(f"MSE: {MSE()(y_test, y_pred)}")
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+X_line = np.linspace(np.min(X[:, 0]), np.max(X[:, 0]), 200)
+y_line = model.predict(X_line)
+
+# ax1.scatter(X_train[:, 0], y_train, color="blue", alpha=0.7)
+ax1.scatter(X_test[:, 0], y_test, color="red", alpha=0.7)
+ax1.plot(X_line, y_line)
+
+ax2.plot(model.history, color="red")
+ax2.set_xlabel("Steps")
+ax2.set_ylabel("Loss")
+
+plt.show()

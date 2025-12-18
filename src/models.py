@@ -17,8 +17,11 @@ class LinearRegression:
         self.reg = penalty
         self.opt = opt
         self.w = None
+        self.steps = steps
 
     def fit(self, X, y):
+        self.history = []
+
         if self.fit_intercept:
             X_b = np.c_[np.ones((X.shape[0], 1)), X]
         else:
@@ -29,6 +32,10 @@ class LinearRegression:
         for _ in range(self.steps):
             grad = self.loss.gradient(X_b, self.w, y)
             self.w = self.opt.step(self.w, grad)
+
+            current_pred = X_b @ self.w
+            loss_val = self.loss(y, current_pred)
+            self.history.append(loss_val)
 
         return self
 
