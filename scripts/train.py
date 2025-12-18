@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from src.models import LinearRegression
 from src.optimizers.gd import GD
 from src.loss import MSE
-from src.regularizers import L1, L2
+from src.regularizers import L1, L2, Elastic_Net
 
 
 X, y = make_regression(n_samples=200, n_features=1, noise=10.0, random_state=42)
@@ -17,7 +17,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 model = LinearRegression(
     fit_intercept=True,
     loss=MSE(),
-    reg=L1(alpha=0.1),
+    reg=Elastic_Net(alpha=0.1, l1_ratio=0.5),
     opt=GD(lr=0.3),
     steps=1000,
 )
