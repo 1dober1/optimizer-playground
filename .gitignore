@@ -1,5 +1,49 @@
 .venv/
-__pycache__/
-*egg-info
-.pytest_cache
+venv/
+ENV/
+env/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+.eggs/
+eggs/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+.Python
+MANIFEST
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Type checkers / linters
+.mypy_cache/
+.ruff_cache/
+.pyright/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+*.iml
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# macOS
 .DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
