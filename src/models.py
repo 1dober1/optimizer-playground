@@ -1,5 +1,7 @@
 import numpy as np
 
+from utils.batcher import BatchIterator
+
 
 class LinearRegression:
     def __init__(
@@ -10,6 +12,8 @@ class LinearRegression:
         opt=None,
         steps=None,
         random_state=None,
+        batch_size=None,
+        lmd=None,
     ) -> None:
         if loss is None:
             raise Exception("Loss function cannot be empty")
@@ -25,6 +29,8 @@ class LinearRegression:
         self.w = None
         self.steps = steps
         self.rng = np.random.default_rng(random_state)
+        self.batch_iterator = BatchIterator(batch_size, random_state)
+        self.lmd = lmd
 
     def fit(self, X, y):
         self.history = []
@@ -36,8 +42,24 @@ class LinearRegression:
 
         self.w = self.rng.standard_normal(X_b.shape[1]) * 0.01
 
+        is_full_batch = self.batch_iterator.batch_size is None
+        if self.lmd is None:
+            current_lmd = 1.0 if is_full_batch else 0.1
+        else:
+            current_lmd = 1.0 if is_full_batch else self.lmd
+
+        Qe = self.loss(y, X_b @ self.w)
+
         for _ in range(self.steps):
-            grad = self.loss.gradient(X_b, self.w, y)
+            X_batch, y_batch = self.batch_iterator.get_batch(X_b, y)
+
+            pred = X_batch @ self.w
+            loss_val = self.loss(y_batch, pred)
+            if self.reg is not None:
+                loss_val += self.reg(self.w[1:] if self.fit_intercept else self.w)
+            Qe = current_lmd * loss_val + (1 - current_lmd) * Qe
+
+            grad = self.loss.gradient(X_batch, self.w, y_batch)
 
             if self.reg is not None and hasattr(self.reg, "grad"):
                 if self.fit_intercept:
@@ -54,13 +76,7 @@ class LinearRegression:
                 else:
                     self.w = self.reg.prox(self.w, lr)
 
-            pred = X_b @ self.w
-            loss_val = self.loss(y, pred)
-            if self.reg is not None:
-                loss_val += self.reg(
-                    self.w[1:] if self.fit_intercept else self.reg(self.w)
-                )
-            self.history.append(loss_val)
+            self.history.append(Qe)
 
         return self
 
