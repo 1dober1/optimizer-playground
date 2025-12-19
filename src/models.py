@@ -39,7 +39,7 @@ class LinearRegression:
         for _ in range(self.steps):
             grad = self.loss.gradient(X_b, self.w, y)
 
-            if self.reg is not None:
+            if self.reg is not None and hasattr(self.reg, "grad"):
                 if self.fit_intercept:
                     grad[1:] += self.reg.grad(self.w[1:])
                 else:
@@ -47,15 +47,19 @@ class LinearRegression:
 
             self.w = self.opt.step(self.w, grad)
 
-            current_pred = X_b @ self.w
-            loss_val = self.loss(y, current_pred)
-
-            if self.reg is not None:
+            if self.reg is not None and hasattr(self.reg, "prox"):
+                lr = self.opt.lr
                 if self.fit_intercept:
-                    loss_val += self.reg(self.w[1:])
+                    self.w[1:] = self.reg.prox(self.w[1:], lr)
                 else:
-                    loss_val += self.reg(self.w)
+                    self.w = self.reg.prox(self.w, lr)
 
+            pred = X_b @ self.w
+            loss_val = self.loss(y, pred)
+            if self.reg is not None:
+                loss_val += self.reg(
+                    self.w[1:] if self.fit_intercept else self.reg(self.w)
+                )
             self.history.append(loss_val)
 
         return self

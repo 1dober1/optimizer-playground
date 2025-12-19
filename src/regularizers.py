@@ -19,8 +19,9 @@ class L1:
     def __call__(self, w):
         return self.alpha * np.sum(np.abs(w))
 
-    def grad(self, w):
-        return self.alpha * np.sign(w)
+    def prox(self, w, lr: float):
+        t = lr * self.alpha
+        return np.sign(w) * np.maximum(np.abs(w) - t, 0.0)
 
 
 class Elastic_Net:
@@ -34,7 +35,8 @@ class Elastic_Net:
         ) * np.sum(w @ w)
 
     def grad(self, w):
-        return (
-            self.alpha * self.l1_ratio * np.sign(w)
-            + self.alpha * ((1 - self.l1_ratio) / 2) * 2 * w
-        )
+        return 2 * self.alpha * (1 - self.l1_ratio) * w
+
+    def prox(self, w, lr: float):
+        t = lr * self.alpha * self.l1_ratio
+        return np.sign(w) * np.maximum(np.abs(w) - t, 0.0)
