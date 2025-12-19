@@ -1,3 +1,8 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
 .venv/
 venv/
 ENV/
@@ -19,6 +24,10 @@ MANIFEST
 
 # Tests / coverage
 .pytest_cache/
+.tox/
+.nox/
+.hypothesis/
+.cache/
 .coverage
 .coverage.*
 htmlcov/
@@ -32,6 +41,29 @@ coverage.xml
 # Jupyter
 .ipynb_checkpoints/
 
+# ML / data artifacts
+data/
+datasets/
+models/
+checkpoints/
+artifacts/
+experiments/
+outputs/
+results/
+runs/
+logs/
+*.log
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.joblib
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.npz
+
 # IDEs
 .vscode/
 .idea/
@@ -41,6 +73,10 @@ coverage.xml
 .env
 .env.*
 !.env.example
+
+# Local Python tooling
+.python-version
+.envrc
 
 # macOS
 .DS_Store
