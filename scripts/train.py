@@ -1,9 +1,12 @@
 import argparse
 
+from contourpy import max_threads
 import numpy as np
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression as sklearn_reg
+from sklearn.linear_model import Ridge, Lasso, ElasticNet
 
 from src.models import LinearRegression
 from src.optimizers.gd import GD
@@ -96,7 +99,7 @@ def main():
         optimizer = Adam(lr=args.lr)
 
     print(
-        "Training model with "
+        "\nTraining model with "
         f"lr={args.lr}, reg={args.reg}, steps={args.steps}, "
         f"opt={args.opt}, batch_size={args.batch_size}, "
         f"alpha={args.alpha}"
@@ -118,13 +121,53 @@ def main():
     train_mse = MSE()(y_train, y_pred_train)
     test_mse = MSE()(y_test, y_pred_test)
 
-    print("-" * 100)
+    print("=" * 100 + "\n")
     print(f"Train MSE: {train_mse:.4f}")
     print(f"Test MSE: {test_mse:.4f}")
 
     if args.reg in ("l1", "elastic"):
         w = model.w[1:] if args.fit_intercept else model.w
         print(f"Zero weights count: {np.sum(np.abs(w) < 1e-8)}")
+
+    print("\n" + "=" * 43 + " SANITY CHECK " + "=" * 43 + "\n")
+
+    n_samples = X_train.shape[0]
+
+    if args.reg == "none":
+        sk_model = sklearn_reg(fit_intercept=args.fit_intercept)
+    elif args.reg == "l2":
+        sk_model = Ridge(
+            alpha=args.alpha * n_samples,
+            fit_intercept=args.fit_intercept,
+            max_iter=args.steps,
+            random_state=args.seed,
+        )
+    elif args.reg == "l1":
+        sk_model = Lasso(
+            alpha=args.alpha / 2.0,
+            fit_intercept=args.fit_intercept,
+            max_iter=args.steps,
+            random_state=args.seed,
+        )
+    elif args.reg == "elastic":
+        sk_model = ElasticNet(
+            alpha=args.alpha / 2.0,
+            l1_ratio=args.l1_ratio,
+            fit_intercept=args.fit_intercept,
+            max_iter=args.steps,
+            random_state=args.seed,
+        )
+
+    sk_model.fit(X_train, y_train)
+
+    sk_pred = sk_model.predict(X_test)
+    sk_mse = MSE()(y_test, sk_pred)
+
+    print(f"My Model MSE:     {test_mse:.6f}")
+    print(f"Sklearn Model MSE: {sk_mse:.6f}")
+
+    diff = abs(test_mse - sk_mse)
+    print(f"Difference:       {diff:.6f}")
 
 
 if __name__ == "__main__":
