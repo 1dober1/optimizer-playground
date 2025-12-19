@@ -35,7 +35,7 @@ class Elastic_Net:
         ) * np.sum(w @ w)
 
     def grad(self, w):
-        return 2 * self.alpha * (1 - self.l1_ratio) * w
+        return self.alpha * (1 - self.l1_ratio) * w
 
     def prox(self, w, lr: float):
         t = lr * self.alpha * self.l1_ratio

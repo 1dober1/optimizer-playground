@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils.batcher import BatchIterator
+from src.utils import BatchIterator
 
 
 class LinearRegression:
@@ -49,6 +49,9 @@ class LinearRegression:
             current_lmd = 1.0 if is_full_batch else self.lmd
 
         Qe = self.loss(y, X_b @ self.w)
+
+        if hasattr(self.opt, "reset"):
+            self.opt.reset()
 
         for _ in range(self.steps):
             X_batch, y_batch = self.batch_iterator.get_batch(X_b, y)
