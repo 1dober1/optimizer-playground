@@ -59,7 +59,9 @@ class LinearRegression:
             pred = X_batch @ self.w
             loss_val = self.loss(y_batch, pred)
             if self.reg is not None:
-                loss_val += self.reg(self.w[1:] if self.fit_intercept else self.w)
+                loss_val += self.reg(
+                    self.w[1:] if self.fit_intercept else self.w
+                )
             Qe = current_lmd * loss_val + (1 - current_lmd) * Qe
 
             grad = self.loss.gradient(X_batch, self.w, y_batch)
