@@ -1,4 +1,8 @@
+import os
+import csv
+import time
 import argparse
+from datetime import datetime
 
 import numpy as np
 from sklearn.datasets import make_regression
@@ -104,6 +108,15 @@ def get_args():
     return parser.parse_args()
 
 
+def log_run(path, row: dict):
+    file_exists = os.path.exists(path)
+    with open(path, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=row.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+
+
 def main():
     args = get_args()
 
@@ -174,7 +187,10 @@ def main():
         batch_size=args.batch_size,
         solver=args.solver,
     )
+
+    t0 = time.perf_counter()
     model.fit(X_train, y_train)
+    train_time = time.perf_counter() - t0
 
     y_pred_test = model.predict(X_test)
     mse = mean_squared_error(y_test, y_pred_test)
@@ -182,6 +198,35 @@ def main():
     mae = mean_absolute_error(y_test, y_pred_test)
     r2 = r2_score(y_test, y_pred_test)
     mape = mean_absolute_percentage_error(y_test, y_pred_test)
+
+    w = model.w[1:] if args.fit_intercept else model.w
+    zero_count = int(np.sum(np.abs(w) < 1e-8))
+    sparsity = float(zero_count / w.size)
+    final_train_loss = model.history[-1] if model.history else None
+
+    row = {
+        "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "solver": args.solver,
+        "opt": args.opt,
+        "lr": args.lr,
+        "steps": args.steps,
+        "batch_size": args.batch_size,
+        "loss": args.loss,
+        "reg": args.reg,
+        "alpha": args.alpha,
+        "l1_ratio": args.l1_ratio,
+        "fit_intercept": args.fit_intercept,
+        "train_time_sec": train_time,
+        "mse": mse,
+        "rmse": rmse,
+        "mae": mae,
+        "r2_score": r2,
+        "mape": mape,
+        "zero_weights": zero_count,
+        "sparsity": sparsity,
+        "final_train_loss": final_train_loss,
+    }
+    log_run("./logs/runs.csv", row)
 
     print("=" * 100 + "\n")
     print(f"MSE: {mse:.4f}")
@@ -191,8 +236,7 @@ def main():
     print(f"MAPE: {mape:.4f}")
 
     if args.reg in ("l1", "elastic"):
-        w = model.w[1:] if args.fit_intercept else model.w
-        print(f"Zero weights count: {np.sum(np.abs(w) < 1e-8)}")
+        print(f"Zero weights count: {zero_count}, sparsity: {sparsity}")
 
     print("\n" + "=" * 43 + " SANITY CHECK " + "=" * 43 + "\n")
 
@@ -200,7 +244,7 @@ def main():
 
     if args.reg == "none":
         sk_model = SklearnLR(fit_intercept=args.fit_intercept)
-    elif args.reg == "l2":
+    elif args.reg == "l2" or (args.reg == "elastic" and args.l1_ratio == 0):
         sk_model = Ridge(
             alpha=args.alpha * n_samples,
             fit_intercept=args.fit_intercept,
