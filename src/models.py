@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.loss import MSE
+from src.losses import MSE
 from src.optimizers.gd import GD
 from src.regularizers import Elastic_Net, L2
 from src.utils import BatchIterator

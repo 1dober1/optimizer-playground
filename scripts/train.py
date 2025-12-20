@@ -11,7 +11,14 @@ from sklearn.linear_model import (
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-from src.loss import MSE
+from src.losses import MSE, RMSE, MAE, Huber, LogCosh
+from src.metrics import (
+    mean_squared_error,
+    root_mean_squared_error,
+    mean_absolute_error,
+    r2_score,
+    mean_absolute_percentage_error,
+)
 from src.models import LinearRegression
 from src.optimizers.adam import Adam
 from src.optimizers.gd import GD
@@ -75,6 +82,16 @@ def get_args():
     )
 
     parser.add_argument(
+        "--loss",
+        type=str,
+        choices=["mse", "rmse", "mae", "huber", "logcosh"],
+        default="mse",
+        help="Loss Function",
+    )
+
+    parser.add_argument("--delta", type=float, default=1.0, help="Huber delta")
+
+    parser.add_argument(
         "--n_samples", type=int, default=200, help="Number of samples"
     )
     parser.add_argument(
@@ -107,6 +124,17 @@ def main():
         random_state=args.seed,
     )
 
+    if args.loss == "mse":
+        loss_function = MSE()
+    elif args.loss == "rmse":
+        loss_function = RMSE()
+    elif args.loss == "mae":
+        loss_function = MAE()
+    elif args.loss == "huber":
+        loss_function = Huber(delta=args.delta)
+    elif args.loss == "logcosh":
+        loss_function = LogCosh()
+
     regularizer = None
     if args.reg == "l1":
         regularizer = L1(alpha=args.alpha)
@@ -131,14 +159,14 @@ def main():
 
     print(
         "\nTraining model with "
-        f"lr={args.lr}, reg={args.reg}, steps={args.steps}, "
+        f"loss={args.loss}, lr={args.lr}, reg={args.reg}, steps={args.steps}, "
         f"opt={args.opt}, batch_size={args.batch_size}, "
         f"alpha={args.alpha}, solver={args.solver}"
     )
 
     model = LinearRegression(
         fit_intercept=args.fit_intercept,
-        loss=MSE(),
+        loss=loss_function,
         reg=regularizer,
         opt=optimizer,
         steps=args.steps,
@@ -148,14 +176,19 @@ def main():
     )
     model.fit(X_train, y_train)
 
-    y_pred_train = model.predict(X_train)
     y_pred_test = model.predict(X_test)
-    train_mse = MSE()(y_train, y_pred_train)
-    test_mse = MSE()(y_test, y_pred_test)
+    mse = mean_squared_error(y_test, y_pred_test)
+    rmse = root_mean_squared_error(y_test, y_pred_test)
+    mae = mean_absolute_error(y_test, y_pred_test)
+    r2 = r2_score(y_test, y_pred_test)
+    mape = mean_absolute_percentage_error(y_test, y_pred_test)
 
     print("=" * 100 + "\n")
-    print(f"Train MSE: {train_mse:.4f}")
-    print(f"Test MSE: {test_mse:.4f}")
+    print(f"MSE: {mse:.4f}")
+    print(f"RMSE: {rmse:.4f}")
+    print(f"MAE: {mae:.4f}")
+    print(f"R2: {r2:.4f}")
+    print(f"MAPE: {mape:.4f}")
 
     if args.reg in ("l1", "elastic"):
         w = model.w[1:] if args.fit_intercept else model.w
@@ -192,12 +225,12 @@ def main():
 
     sk_model.fit(X_train, y_train)
     sk_pred = sk_model.predict(X_test)
-    sk_mse = MSE()(y_test, sk_pred)
+    sk_mse = mean_squared_error(y_test, sk_pred)
 
-    print(f"My Model MSE:      {test_mse:.6f}")
+    print(f"My Model MSE:      {mse:.6f}")
     print(f"Sklearn Model MSE: {sk_mse:.6f}")
 
-    diff = abs(test_mse - sk_mse)
+    diff = abs(mse - sk_mse)
     print(f"Difference:        {diff:.6f}")
 
 

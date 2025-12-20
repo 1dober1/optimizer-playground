@@ -1,6 +1,6 @@
 import numpy as np
 from src.models import LinearRegression
-from src.loss import MSE
+from src.losses import MSE
 from src.optimizers.gd import GD
 
 

@@ -1,5 +1,5 @@
 import numpy as np
-from src.loss import MSE
+from src.losses import MSE
 
 
 def numerical_grad(X, w, y, eps=1e-6):
