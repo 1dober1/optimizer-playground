@@ -2,39 +2,46 @@ import argparse
 
 import numpy as np
 from sklearn.datasets import make_regression
+from sklearn.linear_model import (
+    ElasticNet,
+    Lasso,
+    LinearRegression as SklearnLR,
+    Ridge,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LinearRegression as sklearn_reg
-from sklearn.linear_model import Ridge, Lasso, ElasticNet
 
-from src.models import LinearRegression
-from src.optimizers.gd import GD
-from src.optimizers.adam import Adam
 from src.loss import MSE
-from src.regularizers import L1, L2, Elastic_Net
+from src.models import LinearRegression
+from src.optimizers.adam import Adam
+from src.optimizers.gd import GD
+from src.regularizers import Elastic_Net, L1, L2
 
 
 def get_args():
     parser = argparse.ArgumentParser(
         description="Train Linear Regression model"
     )
+
     parser.add_argument("--lr", type=float, default=0.01, help="Learning rate")
     parser.add_argument(
         "--steps", type=int, default=1000, help="Number of steps"
     )
+
     parser.add_argument(
         "--reg",
-        type=str,
         choices=["none", "l1", "l2", "elastic"],
         default="none",
         help="Regularization type",
     )
     parser.add_argument(
-        "--alpha", type=float, default=0.1, help="Regularization strength"
+        "--alpha",
+        type=float,
+        default=0.1,
+        help="Regularization strength",
     )
     parser.add_argument(
         "--opt",
-        type=str,
         choices=["gd", "adam"],
         default=None,
         help="Optimizer type",
@@ -44,18 +51,25 @@ def get_args():
     )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument(
-        "--l1_ratio", type=float, default=0.5, help="L1 ratio for Elastic-Net"
+        "--l1_ratio",
+        type=float,
+        default=0.5,
+        help="L1 ratio for Elastic-Net",
     )
+
     parser.add_argument(
         "--fit_intercept", action="store_true", help="Fit intercept"
     )
     parser.add_argument(
-        "--no_intercept", dest="fit_intercept", action="store_false"
+        "--no_intercept",
+        dest="fit_intercept",
+        action="store_false",
+        help="Do not fit intercept",
     )
     parser.set_defaults(fit_intercept=True)
+
     parser.add_argument(
         "--solver",
-        type=str,
         default="iterative",
         help="Solver for Linear Regression",
     )
@@ -84,11 +98,13 @@ def main():
         random_state=args.seed,
     )
 
-    scaler = StandardScaler()
-    X = scaler.fit_transform(X)
+    X = StandardScaler().fit_transform(X)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=args.seed
+        X,
+        y,
+        test_size=0.2,
+        random_state=args.seed,
     )
 
     regularizer = None
@@ -105,12 +121,21 @@ def main():
     elif args.opt == "adam":
         optimizer = Adam(lr=args.lr)
 
+    if args.solver == "iterative" and optimizer is None:
+        print(
+            "Warning: optimizer not specified for iterative solver. "
+            "Defaulting to GD."
+        )
+        optimizer = GD(lr=args.lr)
+        args.opt = "gd (auto)"
+
     print(
         "\nTraining model with "
         f"lr={args.lr}, reg={args.reg}, steps={args.steps}, "
         f"opt={args.opt}, batch_size={args.batch_size}, "
         f"alpha={args.alpha}, solver={args.solver}"
     )
+
     model = LinearRegression(
         fit_intercept=args.fit_intercept,
         loss=MSE(),
@@ -121,7 +146,6 @@ def main():
         batch_size=args.batch_size,
         solver=args.solver,
     )
-
     model.fit(X_train, y_train)
 
     y_pred_train = model.predict(X_train)
@@ -142,7 +166,7 @@ def main():
     n_samples = X_train.shape[0]
 
     if args.reg == "none":
-        sk_model = sklearn_reg(fit_intercept=args.fit_intercept)
+        sk_model = SklearnLR(fit_intercept=args.fit_intercept)
     elif args.reg == "l2":
         sk_model = Ridge(
             alpha=args.alpha * n_samples,
@@ -157,7 +181,7 @@ def main():
             max_iter=args.steps,
             random_state=args.seed,
         )
-    elif args.reg == "elastic":
+    else:
         sk_model = ElasticNet(
             alpha=args.alpha / 2.0,
             l1_ratio=args.l1_ratio,
@@ -167,15 +191,14 @@ def main():
         )
 
     sk_model.fit(X_train, y_train)
-
     sk_pred = sk_model.predict(X_test)
     sk_mse = MSE()(y_test, sk_pred)
 
-    print(f"My Model MSE:     {test_mse:.6f}")
+    print(f"My Model MSE:      {test_mse:.6f}")
     print(f"Sklearn Model MSE: {sk_mse:.6f}")
 
     diff = abs(test_mse - sk_mse)
-    print(f"Difference:       {diff:.6f}")
+    print(f"Difference:        {diff:.6f}")
 
 
 if __name__ == "__main__":
