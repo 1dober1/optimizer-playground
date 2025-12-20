@@ -1,6 +1,5 @@
 import argparse
 
-from contourpy import max_threads
 import numpy as np
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
@@ -37,7 +36,7 @@ def get_args():
         "--opt",
         type=str,
         choices=["gd", "adam"],
-        default="gd",
+        default=None,
         help="Optimizer type",
     )
     parser.add_argument(
@@ -54,6 +53,12 @@ def get_args():
         "--no_intercept", dest="fit_intercept", action="store_false"
     )
     parser.set_defaults(fit_intercept=True)
+    parser.add_argument(
+        "--solver",
+        type=str,
+        default="iterative",
+        help="Solver for Linear Regression",
+    )
 
     parser.add_argument(
         "--n_samples", type=int, default=200, help="Number of samples"
@@ -94,15 +99,17 @@ def main():
     elif args.reg == "elastic":
         regularizer = Elastic_Net(alpha=args.alpha, l1_ratio=args.l1_ratio)
 
-    optimizer = GD(lr=args.lr)
-    if args.opt == "adam":
+    optimizer = None
+    if args.opt == "gd":
+        optimizer = GD(lr=args.lr)
+    elif args.opt == "adam":
         optimizer = Adam(lr=args.lr)
 
     print(
         "\nTraining model with "
         f"lr={args.lr}, reg={args.reg}, steps={args.steps}, "
         f"opt={args.opt}, batch_size={args.batch_size}, "
-        f"alpha={args.alpha}"
+        f"alpha={args.alpha}, solver={args.solver}"
     )
     model = LinearRegression(
         fit_intercept=args.fit_intercept,
@@ -112,6 +119,7 @@ def main():
         steps=args.steps,
         random_state=args.seed,
         batch_size=args.batch_size,
+        solver=args.solver,
     )
 
     model.fit(X_train, y_train)
