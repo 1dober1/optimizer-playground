@@ -28,7 +28,7 @@ class MAE:
 
     def gradient(self, X, w, y):
         y_pred = X @ w
-        error = np.abs(y_pred - y)
+        error = y_pred - y
         return (X.T @ np.sign(error)) / X.shape[0]
 
 

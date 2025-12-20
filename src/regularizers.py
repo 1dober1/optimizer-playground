@@ -30,9 +30,9 @@ class Elastic_Net:
         self.l1_ratio = l1_ratio
 
     def __call__(self, w):
-        return self.alpha * self.l1_ratio * np.sum(np.abs(w)) + self.alpha * (
-            (1 - self.l1_ratio) / 2
-        ) * np.sum(w @ w)
+        return self.alpha * self.l1_ratio * np.sum(
+            np.abs(w)
+        ) + 0.5 * self.alpha * (1 - self.l1_ratio) * np.sum(w @ w)
 
     def grad(self, w):
         return self.alpha * (1 - self.l1_ratio) * w
