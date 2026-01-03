@@ -143,3 +143,68 @@ class LinearRegression:
 
         X_b = np.c_[np.ones((X.shape[0], 1)), X] if self.fit_intercept else X
         return X_b @ self.w
+
+
+class LogisticRegression:
+    def __init__(self, fit_intercept=True, random_state=None):
+        self.fit_intercept = fit_intercept
+        self.rng = np.random.default_rng(random_state)
+        self.w = None
+
+    def sigmoid_(self, Z):
+        z = np.asarray(Z)
+        out = np.empty_like(z, dtype=float)
+        pos = z >= 0
+
+        out[pos] = 1.0 / (1.0 + np.exp(-z[pos]))
+        ez = np.exp(z[~pos])
+        out[~pos] = ez / (1.0 + ez)
+
+        return out
+
+    def softmax_(self, Z):
+        Z = Z - Z.max(axis=1, keepdims=True)
+        expZ = np.exp(Z)
+        return expZ / expZ.sum(axis=1, keepdims=True)
+
+    def fit(self, X, y):
+        X_b = np.c_[np.ones((X.shape[0], 1)), X] if self.fit_intercept else X
+
+        classes, y_idx = np.unique(y, return_inverse=True)
+        self.classes_ = classes
+        n_classes = len(classes)
+
+        if n_classes > 2:
+            self.is_multiclass = True
+            y_one_hot = np.zeros((y.shape[0], n_classes))
+            y_one_hot[np.arange(y.shape[0]), y_idx] = 1
+            self.w = self.rng.standard_normal((X_b.shape[1], n_classes)) * 0.01
+        else:
+            self.is_multiclass = False
+            y_one_hot = y_idx
+            self.w = self.rng.standard_normal(X_b.shape[1]) * 0.01
+
+        return self
+
+    def predict_proba(self, X):
+        if self.w is None:
+            raise ValueError("Cannot call predict() before fit()")
+
+        X_b = np.c_[np.ones((X.shape[0], 1)), X] if self.fit_intercept else X
+
+        Z = X_b @ self.w
+
+        if self.is_multiclass:
+            return self.softmax_(Z)
+
+        p1 = self.sigmoid_(Z)
+        return np.column_stack([1.0 - p1, p1])
+
+    def predict(self, X):
+        proba = self.predict_proba(X)
+
+        if self.is_multiclass:
+            idx = np.argmax(proba, axis=1)
+            return self.classes_[idx]
+
+        return np.where(proba[:, 1] >= 0.5, self.classes_[1], self.classes_[0])

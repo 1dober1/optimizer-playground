@@ -20,7 +20,7 @@ matplotlib==3.10.8
 matplotlib-inline==0.2.1
 nest-asyncio==1.6.0
 numpy==2.3.5
--e git+https://github.com/1dober1/optimizer-playground.git@cf820599c4af3890147e1157c4b17aa6ebfe88f1#egg=optimizer_playground
+-e git+https://github.com/1dober1/optimizer-playground.git@e65a0d07acf89c2f7eb39fa97256b894c63c293b#egg=optimizer_playground
 packaging==25.0
 pandas==2.3.3
 parso==0.8.5
@@ -40,6 +40,7 @@ pytz==2025.2
 pyzmq==27.1.0
 scikit-learn==1.8.0
 scipy==1.16.3
+seaborn==0.13.2
 six==1.17.0
 stack-data==0.6.3
 threadpoolctl==3.6.0
