@@ -63,3 +63,42 @@ class LogCosh:
         y_pred = X @ w
         error = y_pred - y
         return (X.T @ np.tanh(error)) / X.shape[0]
+
+
+class LogLoss:
+    def __call__(self, y_true, y_logits):
+        return np.mean(np.logaddexp(0, y_logits) - y_true * y_logits)
+
+    def gradient(self, X, w, y_true):
+        z = X @ w
+
+        p = np.empty_like(z, dtype=float)
+        pos = z >= 0
+        p[pos] = 1.0 / (1.0 + np.exp(-z[pos]))
+        ez = np.exp(z[~pos])
+        p[~pos] = ez / (1.0 + ez)
+
+        error = p - y_true
+        return (X.T @ error) / X.shape[0]
+
+
+class CrossEntropyLoss:
+    def __call__(self, y_true, y_logits):
+        logits_max = np.max(y_logits, axis=1, keepdims=True)
+        logits_shifted = y_logits - logits_max
+
+        exp_logits = np.exp(logits_shifted)
+        log_sum_exp = np.log(np.sum(exp_logits, axis=1, keepdims=True))
+        log_probs = logits_shifted - log_sum_exp
+
+        return -np.mean(np.sum(y_true * log_probs, axis=1))
+
+    def gradient(self, X, w, y_true):
+        logits = X @ w
+        logits_max = np.max(logits, axis=1, keepdims=True)
+        exp_logits = np.exp(logits - logits_max)
+        probs = exp_logits / np.sum(exp_logits, axis=1, keepdims=True)
+
+        error = probs - y_true
+
+        return (X.T @ error) / X.shape[0]

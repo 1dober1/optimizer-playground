@@ -6,7 +6,7 @@ class L2:
         self.alpha = float(alpha)
 
     def __call__(self, w):
-        return self.alpha * np.sum(w @ w)
+        return self.alpha * np.sum(np.square(w))
 
     def grad(self, w):
         return 2 * self.alpha * w
@@ -32,7 +32,7 @@ class Elastic_Net:
     def __call__(self, w):
         return self.alpha * self.l1_ratio * np.sum(
             np.abs(w)
-        ) + 0.5 * self.alpha * (1 - self.l1_ratio) * np.sum(w @ w)
+        ) + 0.5 * self.alpha * (1 - self.l1_ratio) * np.sum(np.square(w))
 
     def grad(self, w):
         return self.alpha * (1 - self.l1_ratio) * w

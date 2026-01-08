@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.losses import MSE
+from src.losses import MSE, LogLoss, CrossEntropyLoss
 from src.optimizers.gd import GD
 from src.regularizers import Elastic_Net, L2
 from src.utils import BatchIterator
@@ -99,6 +99,9 @@ class LinearRegression:
             )
 
         Qe = self.loss(y, X_b @ self.w)
+        if self.reg is not None:
+            w_reg = self.w[1:] if self.fit_intercept else self.w
+            Qe += self.reg(w_reg)
 
         if hasattr(self.opt, "reset"):
             self.opt.reset()
@@ -129,7 +132,13 @@ class LinearRegression:
             self.w = self.opt.step(self.w, grad)
 
             if self.reg is not None and hasattr(self.reg, "prox"):
-                lr = self.opt.lr
+                lr = getattr(self.opt, "lr", None)
+                if lr is None:
+                    raise AttributeError(
+                        "Optimizer must have attribute 'lr' to use "
+                        "prox-regularization (L1/ElasticNet)."
+                    )
+
                 if self.fit_intercept:
                     self.w[1:] = self.reg.prox(self.w[1:], lr)
                 else:
@@ -146,10 +155,30 @@ class LinearRegression:
 
 
 class LogisticRegression:
-    def __init__(self, fit_intercept=True, random_state=None):
+    def __init__(
+        self,
+        fit_intercept=True,
+        opt=None,
+        reg=None,
+        batch_size=None,
+        loss_smoothing=0.9,
+        steps=1000,
+        random_state=None,
+    ):
         self.fit_intercept = fit_intercept
+        self.steps = steps
+        self.reg = reg
         self.rng = np.random.default_rng(random_state)
+        self.loss_smoothing = loss_smoothing
+        self.batch_iterator = BatchIterator(
+            batch_size=batch_size, random_state=random_state
+        )
         self.w = None
+
+        if opt is None:
+            self.opt = GD(lr=0.01)
+        else:
+            self.opt = opt
 
     def sigmoid_(self, Z):
         z = np.asarray(Z)
@@ -168,6 +197,11 @@ class LogisticRegression:
         return expZ / expZ.sum(axis=1, keepdims=True)
 
     def fit(self, X, y):
+        if self.steps is None or self.steps <= 0:
+            raise ValueError("Steps must be > 0")
+
+        self.history = []
+
         X_b = np.c_[np.ones((X.shape[0], 1)), X] if self.fit_intercept else X
 
         classes, y_idx = np.unique(y, return_inverse=True)
@@ -179,10 +213,68 @@ class LogisticRegression:
             y_one_hot = np.zeros((y.shape[0], n_classes))
             y_one_hot[np.arange(y.shape[0]), y_idx] = 1
             self.w = self.rng.standard_normal((X_b.shape[1], n_classes)) * 0.01
+            self.loss = CrossEntropyLoss()
         else:
             self.is_multiclass = False
             y_one_hot = y_idx
             self.w = self.rng.standard_normal(X_b.shape[1]) * 0.01
+            self.loss = LogLoss()
+
+        is_full_batch = self.batch_iterator.batch_size is None
+        if self.loss_smoothing is None:
+            current_loss_smoothing = 1.0 if is_full_batch else 0.1
+        else:
+            current_loss_smoothing = (
+                1.0 if is_full_batch else self.loss_smoothing
+            )
+
+        Qe = self.loss(y_one_hot, X_b @ self.w)
+        if self.reg is not None:
+            w_reg = self.w[1:] if self.fit_intercept else self.w
+            Qe += self.reg(w_reg)
+
+        if hasattr(self.opt, "reset"):
+            self.opt.reset()
+
+        for _ in range(self.steps):
+            X_batch, y_batch = self.batch_iterator.get_batch(X_b, y_one_hot)
+
+            pred = X_batch @ self.w
+            loss_val = self.loss(y_batch, pred)
+
+            if self.reg is not None:
+                w_reg = self.w[1:] if self.fit_intercept else self.w
+                loss_val += self.reg(w_reg)
+
+            Qe = (
+                current_loss_smoothing * loss_val
+                + (1 - current_loss_smoothing) * Qe
+            )
+
+            grad = self.loss.gradient(X_batch, self.w, y_batch)
+
+            if self.reg is not None and hasattr(self.reg, "grad"):
+                if self.fit_intercept:
+                    grad[1:] += self.reg.grad(self.w[1:])
+                else:
+                    grad += self.reg.grad(self.w)
+
+            self.w = self.opt.step(self.w, grad)
+
+            if self.reg is not None and hasattr(self.reg, "prox"):
+                lr = getattr(self.opt, "lr", None)
+                if lr is None:
+                    raise AttributeError(
+                        "Optimizer must have attribute 'lr' to use "
+                        "prox-regularization (L1/ElasticNet)."
+                    )
+
+                if self.fit_intercept:
+                    self.w[1:] = self.reg.prox(self.w[1:], lr)
+                else:
+                    self.w = self.reg.prox(self.w, lr)
+
+            self.history.append(Qe)
 
         return self
 
