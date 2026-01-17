@@ -2,6 +2,7 @@ import numpy as np
 
 from src.optimizers.adam import Adam
 from src.optimizers.adamw import AdamW
+from src.optimizers.momentum import Momentum, NesterovMomentum
 
 
 def test_adam_reset_clears_state():
@@ -85,3 +86,48 @@ def test_adamw_weight_decay_excludes_intercept_matrix():
     expected[1:, :] = w[1:, :] - lr * wd * w[1:, :]
 
     assert np.allclose(w_next, expected)
+
+
+def test_momentum_two_steps_constant_grad():
+    w = np.array([0.0, 0.0])
+    g = np.array([1.0, 1.0])
+
+    lr = 0.1
+    mu = 0.9
+    opt = Momentum(lr=lr, momentum=mu)
+
+    w1 = opt.step(w, g)
+    assert np.allclose(w1, np.array([-0.1, -0.1]))
+
+    w2 = opt.step(w1, g)
+    assert np.allclose(w2, np.array([-0.29, -0.29]))
+
+
+def test_nesterov_two_steps_constant_grad():
+    w = np.array([0.0, 0.0])
+    g = np.array([1.0, 1.0])
+
+    lr = 0.1
+    mu = 0.9
+    opt = NesterovMomentum(lr=lr, momentum=mu)
+
+    w1 = opt.step(w, g)
+    assert np.allclose(w1, np.array([-0.19, -0.19]))
+
+    w2 = opt.step(w1, g)
+    assert np.allclose(w2, np.array([-0.461, -0.461]))
+
+
+def test_momentum_reset():
+    w = np.array([0.0, 0.0])
+    g = np.array([1.0, 1.0])
+
+    opt = Momentum(lr=0.1, momentum=0.9)
+    _ = opt.step(w, g)
+    assert opt.v is not None
+
+    opt.reset()
+    assert opt.v is None
+
+    w1 = opt.step(w, g)
+    assert np.allclose(w1, np.array([-0.1, -0.1]))

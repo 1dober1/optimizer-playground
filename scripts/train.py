@@ -34,6 +34,7 @@ from src.models import LinearRegression, LogisticRegression
 from src.optimizers.adam import Adam
 from src.optimizers.adamw import AdamW
 from src.optimizers.gd import GD
+from src.optimizers.momentum import Momentum, NesterovMomentum
 from src.regularizers import Elastic_Net, L1, L2
 
 
@@ -68,9 +69,15 @@ def get_args():
     )
     parser.add_argument(
         "--opt",
-        choices=["gd", "adam", "adamw"],
+        choices=["gd", "momentum", "nesterov", "adam", "adamw"],
         default=None,
         help="Optimizer type",
+    )
+    parser.add_argument(
+        "--momentum",
+        type=float,
+        default=0.9,
+        help="Momentum factor",
     )
     parser.add_argument(
         "--batch_size", type=int, default=None, help="Batch size"
@@ -192,6 +199,10 @@ def main():
     optimizer = None
     if args.opt == "gd":
         optimizer = GD(lr=args.lr)
+    elif args.opt == "momentum":
+        optimizer = Momentum(lr=args.lr, momentum=args.momentum)
+    elif args.opt == "nesterov":
+        optimizer = NesterovMomentum(lr=args.lr, momentum=args.momentum)
     elif args.opt == "adam":
         optimizer = Adam(lr=args.lr)
     elif args.opt == "adamw":
