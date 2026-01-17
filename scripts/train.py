@@ -32,6 +32,7 @@ from src.metrics import (
 )
 from src.models import LinearRegression, LogisticRegression
 from src.optimizers.adam import Adam
+from src.optimizers.adamw import AdamW
 from src.optimizers.gd import GD
 from src.regularizers import Elastic_Net, L1, L2
 
@@ -67,7 +68,7 @@ def get_args():
     )
     parser.add_argument(
         "--opt",
-        choices=["gd", "adam"],
+        choices=["gd", "adam", "adamw"],
         default=None,
         help="Optimizer type",
     )
@@ -193,6 +194,8 @@ def main():
         optimizer = GD(lr=args.lr)
     elif args.opt == "adam":
         optimizer = Adam(lr=args.lr)
+    elif args.opt == "adamw":
+        optimizer = AdamW(lr=args.lr)
 
     if args.model == "linear":
         if args.solver == "iterative" and optimizer is None:

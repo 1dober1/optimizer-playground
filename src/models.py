@@ -106,6 +106,26 @@ class LinearRegression:
         if hasattr(self.opt, "reset"):
             self.opt.reset()
 
+        use_decoupled_wd = bool(
+            getattr(self.opt, "decoupled_weight_decay", False)
+        )
+
+        if use_decoupled_wd and hasattr(self.opt, "exclude_intercept"):
+            self.opt.exclude_intercept = self.fit_intercept
+
+        if use_decoupled_wd and self.reg is not None:
+            inferred_wd = None
+            if isinstance(self.reg, L2):
+                inferred_wd = 2.0 * self.reg.alpha
+            elif isinstance(self.reg, Elastic_Net):
+                inferred_wd = self.reg.alpha * (1.0 - self.reg.l1_ratio)
+
+            if (
+                inferred_wd is not None
+                and float(getattr(self.opt, "weight_decay", 0.0)) == 0.0
+            ):
+                self.opt.weight_decay = float(inferred_wd)
+
         for _ in range(self.steps):
             X_batch, y_batch = self.batch_iterator.get_batch(X_b, y)
 
@@ -124,10 +144,14 @@ class LinearRegression:
             grad = self.loss.gradient(X_batch, self.w, y_batch)
 
             if self.reg is not None and hasattr(self.reg, "grad"):
-                if self.fit_intercept:
-                    grad[1:] += self.reg.grad(self.w[1:])
-                else:
-                    grad += self.reg.grad(self.w)
+                skip_l2_grad = use_decoupled_wd and isinstance(
+                    self.reg, (L2, Elastic_Net)
+                )
+                if not skip_l2_grad:
+                    if self.fit_intercept:
+                        grad[1:] += self.reg.grad(self.w[1:])
+                    else:
+                        grad += self.reg.grad(self.w)
 
             self.w = self.opt.step(self.w, grad)
 
@@ -236,6 +260,26 @@ class LogisticRegression:
         if hasattr(self.opt, "reset"):
             self.opt.reset()
 
+        use_decoupled_wd = bool(
+            getattr(self.opt, "decoupled_weight_decay", False)
+        )
+
+        if use_decoupled_wd and hasattr(self.opt, "exclude_intercept"):
+            self.opt.exclude_intercept = self.fit_intercept
+
+        if use_decoupled_wd and self.reg is not None:
+            inferred_wd = None
+            if isinstance(self.reg, L2):
+                inferred_wd = 2.0 * self.reg.alpha
+            elif isinstance(self.reg, Elastic_Net):
+                inferred_wd = self.reg.alpha * (1.0 - self.reg.l1_ratio)
+
+            if (
+                inferred_wd is not None
+                and float(getattr(self.opt, "weight_decay", 0.0)) == 0.0
+            ):
+                self.opt.weight_decay = float(inferred_wd)
+
         for _ in range(self.steps):
             X_batch, y_batch = self.batch_iterator.get_batch(X_b, y_one_hot)
 
@@ -254,10 +298,14 @@ class LogisticRegression:
             grad = self.loss.gradient(X_batch, self.w, y_batch)
 
             if self.reg is not None and hasattr(self.reg, "grad"):
-                if self.fit_intercept:
-                    grad[1:] += self.reg.grad(self.w[1:])
-                else:
-                    grad += self.reg.grad(self.w)
+                skip_l2_grad = use_decoupled_wd and isinstance(
+                    self.reg, (L2, Elastic_Net)
+                )
+                if not skip_l2_grad:
+                    if self.fit_intercept:
+                        grad[1:] += self.reg.grad(self.w[1:])
+                    else:
+                        grad += self.reg.grad(self.w)
 
             self.w = self.opt.step(self.w, grad)
 
