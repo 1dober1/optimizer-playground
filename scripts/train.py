@@ -35,6 +35,7 @@ from src.optimizers.adam import Adam
 from src.optimizers.adamw import AdamW
 from src.optimizers.gd import GD
 from src.optimizers.momentum import Momentum, NesterovMomentum
+from src.optimizers.rmsprop import RMSProp
 from src.regularizers import Elastic_Net, L1, L2
 
 
@@ -69,7 +70,7 @@ def get_args():
     )
     parser.add_argument(
         "--opt",
-        choices=["gd", "momentum", "nesterov", "adam", "adamw"],
+        choices=["gd", "momentum", "nesterov", "adam", "adamw", "rmsprop"],
         default=None,
         help="Optimizer type",
     )
@@ -207,6 +208,8 @@ def main():
         optimizer = Adam(lr=args.lr)
     elif args.opt == "adamw":
         optimizer = AdamW(lr=args.lr)
+    elif args.opt == "rmsprop":
+        optimizer = RMSProp(lr=args.lr)
 
     if args.model == "linear":
         if args.solver == "iterative" and optimizer is None:

@@ -3,6 +3,7 @@ import numpy as np
 from src.optimizers.adam import Adam
 from src.optimizers.adamw import AdamW
 from src.optimizers.momentum import Momentum, NesterovMomentum
+from src.optimizers.rmsprop import RMSProp
 
 
 def test_adam_reset_clears_state():
@@ -131,3 +132,35 @@ def test_momentum_reset():
 
     w1 = opt.step(w, g)
     assert np.allclose(w1, np.array([-0.1, -0.1]))
+
+
+def test_rmsprop_two_steps_constant_grad():
+    w = np.array([0.0, 0.0])
+    g = np.array([1.0, 1.0])
+
+    lr = 0.1
+    beta = 0.9
+    eps = 1e-8
+    opt = RMSProp(lr=lr, beta=beta, epsilon=eps)
+
+    w1 = opt.step(w, g)
+    expected_w1 = np.array([-lr / np.sqrt(0.1), -lr / np.sqrt(0.1)])
+    assert np.allclose(w1, expected_w1)
+
+    w2 = opt.step(w1, g)
+    expected_w2 = expected_w1 - np.array(
+        [lr / np.sqrt(0.19), lr / np.sqrt(0.19)]
+    )
+    assert np.allclose(w2, expected_w2)
+
+
+def test_rmsprop_reset():
+    opt = RMSProp(lr=0.1)
+    w = np.array([1.0, 2.0])
+    g = np.array([0.5, -0.5])
+
+    _ = opt.step(w, g)
+    assert opt.s is not None
+
+    opt.reset()
+    assert opt.s is None
