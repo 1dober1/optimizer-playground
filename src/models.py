@@ -7,6 +7,12 @@ from src.utils import BatchIterator
 
 
 class LinearRegression:
+    """
+    Linear Regression model.
+
+    Can be trained using closed-form solution or iterative optimization.
+    """
+
     def __init__(
         self,
         fit_intercept=True,
@@ -19,6 +25,28 @@ class LinearRegression:
         loss_smoothing=0.9,
         solver="iterative",
     ) -> None:
+        """
+        Initialize the Linear Regression model.
+
+        Args:
+            fit_intercept (bool, optional): Whether to calculate the
+                intercept for this model. Defaults to True.
+            loss (object, optional): Loss function. Defaults to None
+                (MSE).
+            reg (object, optional): Regularizer. Defaults to None.
+            opt (object, optional): Optimizer. Defaults to None (GD if
+                solver is iterative).
+            steps (int, optional): Number of iteration steps. Defaults to
+                1000.
+            random_state (int, optional): Seed for random number
+                generator. Defaults to None.
+            batch_size (int, optional): Size of the batch for iterative
+                optimization. Defaults to None (full batch).
+            loss_smoothing (float, optional): Smoothing factor for loss
+                history. Defaults to 0.9.
+            solver (str, optional): Solver to use, 'closed' or
+                'iterative'. Defaults to "iterative".
+        """
         self.fit_intercept = fit_intercept
         self.reg = reg
         self.solver = solver
@@ -44,6 +72,16 @@ class LinearRegression:
         self.w = None
 
     def fit(self, X, y):
+        """
+        Fit the linear regression model.
+
+        Args:
+            X (np.ndarray): Training data.
+            y (np.ndarray): Target values.
+
+        Returns:
+            LinearRegression: The fitted model.
+        """
         self.history = []
 
         X_b = np.c_[np.ones((X.shape[0], 1)), X] if self.fit_intercept else X
@@ -58,6 +96,14 @@ class LinearRegression:
         return self
 
     def _fit_closed(self, X_b, y):
+        """
+        Fit using the closed-form (analytical) solution.
+
+        Args:
+            X_b (np.ndarray): Feature matrix with bias term if
+                applicable.
+            y (np.ndarray): Target values.
+        """
         if self.opt is not None:
             print("Info: Optimizer is ignored for solver='closed'")
 
@@ -70,11 +116,11 @@ class LinearRegression:
         )
 
         if is_ridge:
-            I = np.eye(X_b.shape[1])
+            I_mat = np.eye(X_b.shape[1])
             if self.fit_intercept:
-                I[0, 0] = 0.0
+                I_mat[0, 0] = 0.0
 
-            A = X_b.T @ X_b + (self.reg.alpha * X_b.shape[0]) * I
+            A = X_b.T @ X_b + (self.reg.alpha * X_b.shape[0]) * I_mat
             b = X_b.T @ y
             self.w = np.linalg.solve(A, b)
             return self
@@ -85,6 +131,14 @@ class LinearRegression:
         )
 
     def _fit_iterative(self, X_b, y):
+        """
+        Fit using iterative optimization.
+
+        Args:
+            X_b (np.ndarray): Feature matrix with bias term if
+                applicable.
+            y (np.ndarray): Target values.
+        """
         if self.steps is None or self.steps <= 0:
             raise ValueError("Steps must be > 0")
 
@@ -171,6 +225,15 @@ class LinearRegression:
             self.history.append(Qe)
 
     def predict(self, X):
+        """
+        Predict using the linear model.
+
+        Args:
+            X (np.ndarray): Samples.
+
+        Returns:
+            np.ndarray: Predicted values.
+        """
         if self.w is None:
             raise ValueError("Cannot call predict() before fit()")
 
@@ -179,6 +242,12 @@ class LinearRegression:
 
 
 class LogisticRegression:
+    """
+    Logistic Regression model.
+
+    Supports binary and multi-class classification.
+    """
+
     def __init__(
         self,
         fit_intercept=True,
@@ -189,6 +258,23 @@ class LogisticRegression:
         steps=1000,
         random_state=None,
     ):
+        """
+        Initialize the Logistic Regression model.
+
+        Args:
+            fit_intercept (bool, optional): Whether to calculate the
+                intercept for this model. Defaults to True.
+            opt (object, optional): Optimizer. Defaults to None (GD).
+            reg (object, optional): Regularizer. Defaults to None.
+            batch_size (int, optional): Size of the batch for iterative
+                optimization. Defaults to None (full batch).
+            loss_smoothing (float, optional): Smoothing factor for loss
+                history. Defaults to 0.9.
+            steps (int, optional): Number of iteration steps. Defaults
+                to 1000.
+            random_state (int, optional): Seed for random number
+                generator. Defaults to None.
+        """
         self.fit_intercept = fit_intercept
         self.steps = steps
         self.reg = reg
@@ -205,6 +291,15 @@ class LogisticRegression:
             self.opt = opt
 
     def sigmoid_(self, Z):
+        """
+        Sigmoid activation function.
+
+        Args:
+            Z (np.ndarray): Input values.
+
+        Returns:
+            np.ndarray: Sigmoid output.
+        """
         z = np.asarray(Z)
         out = np.empty_like(z, dtype=float)
         pos = z >= 0
@@ -216,11 +311,30 @@ class LogisticRegression:
         return out
 
     def softmax_(self, Z):
+        """
+        Softmax activation function.
+
+        Args:
+            Z (np.ndarray): Input values.
+
+        Returns:
+            np.ndarray: Softmax output.
+        """
         Z = Z - Z.max(axis=1, keepdims=True)
         expZ = np.exp(Z)
         return expZ / expZ.sum(axis=1, keepdims=True)
 
     def fit(self, X, y):
+        """
+        Fit the logistic regression model.
+
+        Args:
+            X (np.ndarray): Training data.
+            y (np.ndarray): Target values.
+
+        Returns:
+            LogisticRegression: The fitted model.
+        """
         if self.steps is None or self.steps <= 0:
             raise ValueError("Steps must be > 0")
 
@@ -327,6 +441,16 @@ class LogisticRegression:
         return self
 
     def predict_proba(self, X):
+        """
+        Probability estimates.
+
+        Args:
+            X (np.ndarray): Samples.
+
+        Returns:
+            np.ndarray: Returns the probability of the sample for each
+                class in the model.
+        """
         if self.w is None:
             raise ValueError("Cannot call predict() before fit()")
 
@@ -341,6 +465,15 @@ class LogisticRegression:
         return np.column_stack([1.0 - p1, p1])
 
     def predict(self, X):
+        """
+        Predict class labels for samples in X.
+
+        Args:
+            X (np.ndarray): Samples.
+
+        Returns:
+            np.ndarray: Predicted class label per sample.
+        """
         proba = self.predict_proba(X)
 
         if self.is_multiclass:

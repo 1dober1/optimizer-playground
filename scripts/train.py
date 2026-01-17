@@ -40,6 +40,12 @@ from src.regularizers import Elastic_Net, L1, L2
 
 
 def get_args():
+    """
+    Parse command line arguments.
+
+    Returns:
+        argparse.Namespace: Parsed arguments.
+    """
     parser = argparse.ArgumentParser(
         description="Train Linear Regression model"
     )
@@ -138,6 +144,13 @@ def get_args():
 
 
 def log_run(path, row: dict):
+    """
+    Log run metrics to a CSV file.
+
+    Args:
+        path (str): Path to the CSV file.
+        row (dict): Dictionary of metrics to log.
+    """
     file_exists = os.path.exists(path)
     with open(path, "a", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=row.keys())
@@ -147,6 +160,9 @@ def log_run(path, row: dict):
 
 
 def main():
+    """
+    Main function to run the training script.
+    """
     args = get_args()
 
     if args.model == "linear":

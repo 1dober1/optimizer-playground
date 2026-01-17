@@ -2,6 +2,12 @@ import numpy as np
 
 
 class AdamW:
+    """
+    AdamW optimizer.
+
+    Adam with decoupled weight decay.
+    """
+
     decoupled_weight_decay = True
 
     def __init__(
@@ -13,6 +19,22 @@ class AdamW:
         weight_decay=0.0,
         exclude_intercept=True,
     ):
+        """
+        Initialize AdamW.
+
+        Args:
+            lr (float, optional): Learning rate. Defaults to 0.001.
+            beta_1 (float, optional): Exponential decay rate for the
+                first moment estimates. Defaults to 0.9.
+            beta_2 (float, optional): Exponential decay rate for the
+                second moment estimates. Defaults to 0.999.
+            epsilon (float, optional): Small value to prevent division by
+                zero. Defaults to 1e-8.
+            weight_decay (float, optional): Weight decay coefficient.
+                Defaults to 0.0.
+            exclude_intercept (bool, optional): Whether to exclude the
+                intercept term from weight decay. Defaults to True.
+        """
         if lr is None or lr <= 0:
             raise ValueError("lr must be > 0")
         if beta_1 <= 0 or beta_1 >= 1:
@@ -36,6 +58,15 @@ class AdamW:
         self.t = 0
 
     def _decay_term(self, w):
+        """
+        Compute the weight decay term.
+
+        Args:
+            w (np.ndarray): Weights.
+
+        Returns:
+            np.ndarray: Weight decay term to be subtracted.
+        """
         if not self.exclude_intercept:
             return w
 
@@ -49,6 +80,17 @@ class AdamW:
         return decay_w
 
     def step(self, w, grad):
+        """
+        Update the weights using the gradient and weight decay.
+
+        Args:
+            w (np.ndarray): Current weights.
+            grad (np.ndarray): Gradient of the loss with respect to
+                weights.
+
+        Returns:
+            np.ndarray: Updated weights.
+        """
         if self.m is None:
             self.m = np.zeros_like(w)
             self.v = np.zeros_like(w)
@@ -69,6 +111,9 @@ class AdamW:
         return w_next
 
     def reset(self):
+        """
+        Reset the optimizer state.
+        """
         self.m = None
         self.v = None
         self.t = 0
